@@ -1,1 +1,1 @@
-Please see the project in Index.html and Index.rmd
+Please see the project in Index.html and Index.Rmd
