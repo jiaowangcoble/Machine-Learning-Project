@@ -1,0 +1,68 @@
+---
+title: "Machine Learning Project"
+author: "Jiao Wang"
+date: "12/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+#Summary: the goal of the project is to predict the manner in which they did the exercise from
+#the data set. First I picked all the numberical veriables that I think could be used as regressor, 
+#Then I applied dimensional reduction on the variables to pick the most important variables
+#I tried two models, decision tree and randomForest with Ten Cross Validation
+#The results showed that randomForest is a better model with 97% accuracy, therefore I 
+#chose randomForest model as the model for prediction
+training<-read.csv("~/Desktop/pml-training.csv")
+testing<-read.csv("~/Desktop/pml-testing.csv")
+#pick all the variables that may needed and create a new data set
+newdata<-training[, c(8:10, 37:49, 60:68, 84:86, 102, 113:124, 151:159, 160)]
+#check percentage of zero values
+lapply(newdata, function(x){length(which(x==0))/length(x)})
+# $gyros_belt_y has 24% zero value, $gyros_belt_z has 9%, $pitch_arm has 17%
+#$yaw_arm has 17%, $roll_forearm has 20%, $pitch_forearm has 20%, $yaw_forearm
+# has 20% zero value
+#Split data into train and test set at 7:3
+set.seed(123)
+library(caret)
+library(e1071)
+inTrain<-createDataPartition(y=newdata$classe, p=0.7, list=FALSE)
+Training<-newdata[inTrain,]
+Testing<-newdata[-inTrain,]
+#Dimensional reduction
+pre<-preProcess(Training, method="pca")
+TrainingPC<-predict(pre, Training)
+TestingPC<-predict(pre, Testing)
+#Model1, randomForest
+mod1<-train(classe~., data=TrainingPC, method="rf", trControl=trainControl(method="cv", number=3))
+#validate the model on Testing data set
+pred<-predict(mod1, newdata=TestingPC)
+confusionMatrix(as.factor(pred), as.factor(TestingPC$classe))
+#Model2, decision tree
+mod2<-train(classe~., data=TrainingPC, method="rpart")
+#validate the model on Testing data set
+pred2<-predict(mod2, newdata=TestingPC)
+confusionMatrix(as.factor(pred2), as.factor(TestingPC$classe))
+#The accuracy of the two model shows that randomForest is a better model with accuracy of 97%, 
+#the the accuracy of decision tree is only 40% whcich is not a good model
+#predict the testing data 
+testingnew<-predict(pre, testing)
+pred3<-predict(mod1, newdata=testingnew)
+pred3
+#citation:
+#Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. 
+#Qualitative Activity Recognition of Weight Lifting Exercises. 
+#Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . 
+#Stuttgart, Germany: ACM SIGCHI, 2013.
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
